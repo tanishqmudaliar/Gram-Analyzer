@@ -1,0 +1,29 @@
+{
+  "name": "gramanalyzer",
+  "version": "1.0.0",
+  "description": "Instagram Analytics App - See who doesn't follow you back, who unfollowed you, and more",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail false \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:web": "cd web && npm run dev",
+    "dev:api": "cd api && venv\\Scripts\\python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "build": "cd web && npm run build",
+    "build:android": "cd web && npm run build && npx cap sync android",
+    "start:api": "cd api && py -m uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "install:all": "npm install && cd web && npm install && cd ../api && pip install -r requirements.txt",
+    "android:open": "cd web && npx cap open android",
+    "android:sync": "cd web && npx cap sync android",
+    "android:build": "cd web && npm run build && npx cap sync android && npx cap open android"
+  },
+  "keywords": [
+    "instagram",
+    "analytics",
+    "followers",
+    "unfollowers"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

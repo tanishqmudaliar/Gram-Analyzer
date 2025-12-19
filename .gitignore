@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+.venv/
+
+# Build outputs
+web/out/
+web/.next/
+api/*.db
+*.sqlite
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Android
+web/android/.gradle/
+web/android/app/build/
+web/android/build/
+*.apk
+*.keystore
+
+# iOS
+web/ios/App/Pods/
+*.xcworkspace
+
+# Misc
+*.pem
+.cache/
+
+# API secrets and cache
+api/.machine_uuid
+api/.secret_key
+api/profile_pics/
+
+# AI
+.claude/
