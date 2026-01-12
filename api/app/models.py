@@ -82,15 +82,7 @@ class DetailedAnalytics(BaseModel):
     mutual_friends: list[InstagramUser] = []
     new_followers: list[InstagramUser] = []
     lost_followers: list[InstagramUser] = []
-    ghost_followers: list[InstagramUser] = []  # Follow but never engage
-
-
-# TODO: Story viewer feature - not yet implemented
-# class StoryViewerStats(BaseModel):
-#     viewer: InstagramUser
-#     view_count: int
-#     last_viewed: datetime
-
+    
 
 class SyncStatus(BaseModel):
     is_syncing: bool

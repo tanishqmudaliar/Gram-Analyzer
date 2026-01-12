@@ -54,10 +54,6 @@ class AnalyticsService:
             lost_follower_ids = previous_follower_ids - follower_ids
             lost_followers = [previous_follower_map[id] for id in lost_follower_ids]
 
-        # TODO: Story viewer feature - not yet implemented
-        # Ghost followers would be computed from story_viewer_history when implemented
-        ghost_followers = []
-
         # Build overview
         overview = AnalyticsOverview(
             total_followers=len(followers),
@@ -79,7 +75,6 @@ class AnalyticsService:
             mutual_friends=sorted(mutual_friends, key=lambda x: x.username.lower()),
             new_followers=new_followers,
             lost_followers=lost_followers,
-            ghost_followers=ghost_followers[:100],  # Limit to 100
         )
 
     async def save_snapshot(
@@ -90,6 +85,22 @@ class AnalyticsService:
     ) -> None:
         """Save current followers/following to database for historical comparison."""
         snapshot_date = datetime.utcnow()
+        
+        # Delete today's existing snapshots to avoid duplicates
+        today_start = snapshot_date. replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        await database.execute(
+            followers_snapshot. delete().where(
+                (followers_snapshot.c.user_id == user_id) &
+                (followers_snapshot.c.snapshot_date >= today_start)
+            )
+        )
+        await database.execute(
+            following_snapshot. delete().where(
+                (following_snapshot.c.user_id == user_id) &
+                (following_snapshot.c.snapshot_date >= today_start)
+            )
+        )
 
         # Save followers
         for follower in followers:
@@ -121,30 +132,34 @@ class AnalyticsService:
                 )
             )
 
-    async def get_previous_followers(self, user_id: int) -> Optional[list[InstagramUser]]:
+    async def get_previous_followers(self, user_id:  int) -> Optional[list[InstagramUser]]:
         """Get the most recent previous follower snapshot."""
-        # Get the latest snapshot date that's not today
+        # Get distinct snapshot dates, ordered by most recent
         query = """
-            SELECT DISTINCT snapshot_date
+            SELECT DISTINCT DATE(snapshot_date) as snap_date, MAX(snapshot_date) as latest_time
             FROM followers_snapshot
-            WHERE user_id = :user_id
-            ORDER BY snapshot_date DESC
+            WHERE user_id = : user_id
+            GROUP BY DATE(snapshot_date)
+            ORDER BY snap_date DESC
             LIMIT 2
         """
         rows = await database.fetch_all(query, {"user_id": user_id})
-
+        
         if len(rows) < 2:
+            # No previous snapshot exists (first sync or only one day of data)
             return None
-
-        # Get the second most recent snapshot
-        previous_date = rows[1]["snapshot_date"]
-
-        query = followers_snapshot.select().where(
-            (followers_snapshot.c.user_id == user_id)
-            & (followers_snapshot.c.snapshot_date == previous_date)
-        )
-        rows = await database.fetch_all(query)
-
+        
+        # Get followers from the second most recent DATE (not just timestamp)
+        previous_date = rows[1]["snap_date"]
+        
+        query = """
+            SELECT DISTINCT follower_ig_id, follower_username, follower_full_name,
+                follower_profile_pic_url, is_verified, is_private
+            FROM followers_snapshot
+            WHERE user_id = :user_id AND DATE(snapshot_date) = :prev_date
+        """
+        rows = await database.fetch_all(query, {"user_id": user_id, "prev_date": previous_date})
+        
         return [
             InstagramUser(
                 ig_id=row["follower_ig_id"],

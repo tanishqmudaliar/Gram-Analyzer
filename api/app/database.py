@@ -1,3 +1,4 @@
+import asyncio
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, DateTime, Text, Boolean, ForeignKey
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -91,9 +92,17 @@ async def init_db():
     engine.dispose()
 
 
-async def connect_db():
-    """Connect to database."""
-    await database.connect()
+async def connect_db(max_retries: int = 3):
+    """Connect to database with retry logic."""
+    for attempt in range(max_retries):
+        try:
+            await database.connect()
+            return
+        except Exception as e:
+            if attempt < max_retries - 1:
+                await asyncio.sleep(1)
+            else: 
+                raise Exception(f"Failed to connect to database after {max_retries} attempts: {e}")
 
 
 async def disconnect_db():

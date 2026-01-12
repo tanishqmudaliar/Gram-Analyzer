@@ -47,43 +47,41 @@ def get_all_cached_ids() -> Set[str]:
     return cached
 
 
-async def download_profile_pic(ig_user_id: str, profile_pic_url: str) -> bool:
-    """
-    Download and cache a single profile picture.
-    Returns True if successful, False otherwise.
-    """
+async def download_profile_pic(ig_user_id:  str, profile_pic_url:  str) -> bool:
+    """Download and cache a single profile picture."""
     if not profile_pic_url:
+        return False
+    
+    # Skip Instagram default profile pics
+    if "44884218_345707102882519_2446069589734326272_n" in profile_pic_url:
         return False
 
     ensure_profile_pics_dir()
     pic_path = get_cached_pic_path(ig_user_id)
 
-    # Skip if already cached
-    if pic_path.exists():
+    if pic_path. exists():
         return True
 
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+    try: 
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
             response = await client.get(
                 profile_pic_url,
-                follow_redirects=True,
                 headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
                 }
             )
 
             if response.status_code == 200:
-                content_type = response.headers.get("content-type", "")
-                if "image" in content_type or len(response.content) > 1000:
-                    pic_path.write_bytes(response.content)
+                content_type = response.headers. get("content-type", "")
+                if "image" in content_type and len(response.content) > 500:
+                    pic_path.write_bytes(response. content)
                     return True
-                else:
-                    log(f"[IMG CACHE] Invalid content type for {ig_user_id}: {content_type}")
-                    return False
-            else:
-                log(f"[IMG CACHE] Failed to download {ig_user_id}: HTTP {response.status_code}")
-                return False
+            
+            return False
 
+    except httpx.TimeoutException:
+        log(f"[IMG CACHE] Timeout downloading {ig_user_id}")
+        return False
     except Exception as e:
         log(f"[IMG CACHE] Error downloading {ig_user_id}: {e}")
         return False

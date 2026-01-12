@@ -99,7 +99,6 @@ async def get_detailed_analytics(current_user: dict = Depends(get_current_user))
         mutual_friends=[],
         new_followers=[],
         lost_followers=[],
-        ghost_followers=[],
     )
 
 
@@ -173,19 +172,6 @@ async def get_lost_followers(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Please sync your account first.")
 
     return cached.lost_followers
-
-
-
-@router.get("/ghost-followers", response_model=list[InstagramUser])
-async def get_ghost_followers(current_user: dict = Depends(get_current_user)):
-    """Get list of followers who never engage (ghost followers)."""
-    user_id = current_user["id"]
-    cached = await analytics_service.get_cached_analytics(user_id)
-
-    if not cached:
-        raise HTTPException(status_code=404, detail="Please sync your account first.")
-
-    return cached.ghost_followers
 
 
 @router.get("/can-sync")
@@ -318,6 +304,22 @@ async def perform_sync(
         log(f"[SYNC] Session loaded for user_id={user_id}, ig_user_id={ig_user_id}")
         await human_delay(1, 3)
 
+        if not ig_service.load_session(session_data):
+            sync_status[status_key].is_syncing = False
+            sync_status[status_key]. current_task = "Session expired.  Please login again."
+            log("[SYNC] Failed to load session")
+            return
+
+        # ADD THIS: 
+        sync_status[status_key].current_task = "Validating session..."
+        sync_status[status_key].progress = 8
+
+        if not await ig_service.validate_session():
+            sync_status[status_key].is_syncing = False
+            sync_status[status_key].current_task = "Session invalid. Please login again."
+            log("[SYNC] Session validation failed")
+            return
+
         # Get previous followers for comparison
         sync_status[status_key].current_task = "Loading previous data..."
         sync_status[status_key].progress = 10
@@ -330,7 +332,11 @@ async def perform_sync(
         log("[SYNC] Fetching followers...")
 
         try:
-            followers = await ig_service.get_followers(ig_user_id)
+            def update_follower_progress(current, total):
+                sync_status[status_key]. current_task = f"Fetching followers...  {current}/{total}"
+                sync_status[status_key]. progress = 20 + int((current / total) * 25) if total > 0 else 20
+            
+            followers = await ig_service.get_followers(ig_user_id, progress_callback=update_follower_progress)
             log(f"[SYNC] Got {len(followers)} followers")
             sync_status[status_key].current_task = f"Found {len(followers)} followers"
             sync_status[status_key].progress = 45
@@ -352,11 +358,15 @@ async def perform_sync(
         log("[SYNC] Fetching following...")
 
         try:
-            following = await ig_service.get_following(ig_user_id)
+            def update_following_progress(current, total):
+                sync_status[status_key].current_task = f"Fetching following... {current}/{total}"
+                sync_status[status_key].progress = 50 + int((current / total) * 25) if total > 0 else 50
+            
+            following = await ig_service.get_following(ig_user_id, progress_callback=update_following_progress)
             log(f"[SYNC] Got {len(following)} following")
-            sync_status[status_key].current_task = f"Found {len(following)} following"
+            sync_status[status_key]. current_task = f"Found {len(following)} following"
             sync_status[status_key].progress = 75
-        except InstagramRateLimitError as e:
+        except InstagramRateLimitError as e: 
             log(f"[SYNC ERROR] Instagram rate limit: {e}")
             sync_status[status_key].is_syncing = False
             sync_status[status_key].current_task = str(e)

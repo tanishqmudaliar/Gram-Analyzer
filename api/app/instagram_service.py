@@ -354,36 +354,72 @@ class InstagramService:
         self,
         user_id: str,
         amount: int = 0,
-        progress_callback: Callable[[int, int], None] = None
+        progress_callback:  Callable[[int, int], None] = None
     ) -> list[InstagramUser]:
-        """Get followers with rate limiting."""
-        if not self.client:
+        """Get followers with pagination and rate limiting."""
+        if not self.client: 
             raise ValueError("Not logged in")
 
         try:
-            # Use a safe amount - Instagram often blocks requests for large amounts
-            safe_amount = min(amount, 200) if amount > 0 else 200
-            log(f"[IG] Fetching up to {safe_amount} followers for user {user_id}")
-
-            followers = self.client.user_followers(user_id, amount=safe_amount)
-            log(f"[IG] Got {len(followers)} followers from API")
-
-            result = []
-            for pk, user in followers.items():
-                result.append(self._user_short_to_instagram_user(user))
-
-            return result
+            batch_size = 100
+            max_amount = min(amount, RATE_LIMITS["max_followers_per_sync"]) if amount > 0 else 1000
+            
+            log(f"[IG] Fetching up to {max_amount} followers for user {user_id}")
+            
+            all_followers = {}
+            end_cursor = None
+            
+            while len(all_followers) < max_amount: 
+                try:
+                    # Fetch batch
+                    batch = self.client. user_followers_v1(
+                        user_id,
+                        amount=min(batch_size, max_amount - len(all_followers))
+                    )
+                    
+                    if not batch:
+                        break
+                    
+                    for user in batch:
+                        all_followers[str(user.pk)] = user
+                    
+                    log(f"[IG] Fetched {len(all_followers)}/{max_amount} followers")
+                    
+                    if progress_callback: 
+                        progress_callback(len(all_followers), max_amount)
+                    
+                    # Stop if we got less than requested (no more data)
+                    if len(batch) < batch_size:
+                        break
+                    
+                    # Human-like delay between batches
+                    if len(all_followers) < max_amount: 
+                        delay = random.uniform(
+                            RATE_LIMITS["delay_between_pages"][0],
+                            RATE_LIMITS["delay_between_pages"][1]
+                        )
+                        log(f"[IG] Waiting {delay:.1f}s before next batch...")
+                        await asyncio.sleep(delay)
+                        
+                except PleaseWaitFewMinutes:
+                    log("[IG WARNING] Rate limited, waiting 60s...")
+                    await asyncio.sleep(60)
+                    continue
+                    
+            log(f"[IG] Got {len(all_followers)} total followers")
+            
+            return [self._user_short_to_instagram_user(u) for u in all_followers.values()]
+            
         except ClientBadRequestError as e:
             error_str = str(e).lower()
             log(f"[IG ERROR] Bad request getting followers: {e}")
-            # Instagram rate limit / temporary restriction
             if "400" in str(e) or "bad request" in error_str:
                 raise InstagramRateLimitError(
-                    "Instagram temporarily restricted access to followers. "
-                    "Try again in 1-24 hours. Using the Instagram app normally can help lift the restriction faster."
+                    "Instagram temporarily restricted access to followers.  "
+                    "Try again in 1-24 hours."
                 )
             raise
-        except Exception as e:
+        except Exception as e: 
             log(f"[IG ERROR] Error getting followers: {e}")
             raise
 
@@ -391,33 +427,65 @@ class InstagramService:
         self,
         user_id: str,
         amount: int = 0,
-        progress_callback: Callable[[int, int], None] = None
-    ) -> list[InstagramUser]:
-        """Get following with rate limiting."""
+        progress_callback:  Callable[[int, int], None] = None
+    ) -> list[InstagramUser]: 
+        """Get following with pagination and rate limiting."""
         if not self.client:
             raise ValueError("Not logged in")
 
         try:
-            # Use a safe amount - Instagram often blocks requests for large amounts
-            safe_amount = min(amount, 200) if amount > 0 else 200
-            log(f"[IG] Fetching up to {safe_amount} following for user {user_id}")
-
-            following = self.client.user_following(user_id, amount=safe_amount)
-            log(f"[IG] Got {len(following)} following from API")
-
-            result = []
-            for pk, user in following.items():
-                result.append(self._user_short_to_instagram_user(user))
-
-            return result
+            batch_size = 100
+            max_amount = min(amount, RATE_LIMITS["max_followers_per_sync"]) if amount > 0 else 1000
+            
+            log(f"[IG] Fetching up to {max_amount} following for user {user_id}")
+            
+            all_following = {}
+            
+            while len(all_following) < max_amount:
+                try:
+                    batch = self.client. user_following_v1(
+                        user_id,
+                        amount=min(batch_size, max_amount - len(all_following))
+                    )
+                    
+                    if not batch:
+                        break
+                    
+                    for user in batch:
+                        all_following[str(user.pk)] = user
+                    
+                    log(f"[IG] Fetched {len(all_following)}/{max_amount} following")
+                    
+                    if progress_callback: 
+                        progress_callback(len(all_following), max_amount)
+                    
+                    if len(batch) < batch_size:
+                        break
+                    
+                    if len(all_following) < max_amount:
+                        delay = random.uniform(
+                            RATE_LIMITS["delay_between_pages"][0],
+                            RATE_LIMITS["delay_between_pages"][1]
+                        )
+                        log(f"[IG] Waiting {delay:.1f}s before next batch...")
+                        await asyncio.sleep(delay)
+                        
+                except PleaseWaitFewMinutes: 
+                    log("[IG WARNING] Rate limited, waiting 60s...")
+                    await asyncio.sleep(60)
+                    continue
+                    
+            log(f"[IG] Got {len(all_following)} total following")
+            
+            return [self._user_short_to_instagram_user(u) for u in all_following.values()]
+            
         except ClientBadRequestError as e:
             error_str = str(e).lower()
             log(f"[IG ERROR] Bad request getting following: {e}")
-            # Instagram rate limit / temporary restriction
-            if "400" in str(e) or "bad request" in error_str:
+            if "400" in str(e) or "bad request" in error_str: 
                 raise InstagramRateLimitError(
                     "Instagram temporarily restricted access to following list. "
-                    "Try again in 1-24 hours. Using the Instagram app normally can help lift the restriction faster."
+                    "Try again in 1-24 hours."
                 )
             raise
         except Exception as e:
@@ -465,6 +533,19 @@ class InstagramService:
 
         user_info = self.client.user_info(user_id)
         return self._user_info_to_profile(user_info)
+
+    async def validate_session(self) -> bool:
+        """Check if the current session is still valid."""
+        if not self.client:
+            return False
+        
+        try: 
+            # Try to get own user info as a session check
+            self.client.user_info(self.client.user_id)
+            return True
+        except Exception as e:
+            log(f"[IG] Session validation failed: {e}")
+            return False
 
     def _user_info_to_profile(self, user_info) -> UserProfile:
         return UserProfile(

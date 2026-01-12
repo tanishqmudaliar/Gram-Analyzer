@@ -78,7 +78,6 @@ export interface DetailedAnalytics {
   mutual_friends: InstagramUser[];
   new_followers: InstagramUser[];
   lost_followers: InstagramUser[];
-  ghost_followers: InstagramUser[];
 }
 
 export interface SyncStatus {
@@ -205,16 +204,17 @@ export const analyticsApi = {
   },
 
   getLostFollowers: async (): Promise<InstagramUser[]> => {
-    const { data } = await api.get<InstagramUser[]>("/analytics/lost-followers");
+    const { data } = await api.get<InstagramUser[]>(
+      "/analytics/lost-followers"
+    );
     return data;
   },
 
-  getGhostFollowers: async (): Promise<InstagramUser[]> => {
-    const { data } = await api.get<InstagramUser[]>("/analytics/ghost-followers");
-    return data;
-  },
-
-  startSync: async (): Promise<{ success: boolean; message: string; status: SyncStatus }> => {
+  startSync: async (): Promise<{
+    success: boolean;
+    message: string;
+    status: SyncStatus;
+  }> => {
     const { data } = await api.post("/analytics/sync");
     return data;
   },
@@ -235,12 +235,16 @@ export const analyticsApi = {
   },
 
   getImageCacheStatus: async (): Promise<ImageCacheStatus> => {
-    const { data } = await api.get<ImageCacheStatus>("/analytics/image-cache/status");
+    const { data } = await api.get<ImageCacheStatus>(
+      "/analytics/image-cache/status"
+    );
     return data;
   },
 
   hasCachedPic: async (igUserId: string): Promise<boolean> => {
-    const { data } = await api.get<{ has_cached_pic: boolean }>(`/analytics/has-cached-pic/${igUserId}`);
+    const { data } = await api.get<{ has_cached_pic: boolean }>(
+      `/analytics/has-cached-pic/${igUserId}`
+    );
     return data.has_cached_pic;
   },
 };

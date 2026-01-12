@@ -89,6 +89,8 @@ class Settings(BaseSettings):
 
     # Instagram
     proxy_url: str | None = None
+    max_followers_to_fetch: int = 1000  # ADD THIS
+    max_following_to_fetch: int = 1000  # ADD THIS
 
     # Sync settings
     sync_cooldown_hours: int = 0  # Set to 0 for testing, 24 for production
