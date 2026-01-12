@@ -1,3 +1,4 @@
+"use no memo";
 "use client";
 
 import { useRef } from "react";
@@ -32,7 +33,7 @@ export function VirtualUserList({
   }
 
   return (
-    <div ref={parentRef} className="h-[500px] overflow-auto">
+    <div ref={parentRef} className="h-125 overflow-auto">
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,

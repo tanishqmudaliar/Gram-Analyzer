@@ -43,7 +43,7 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <Card
-      className={`bg-gradient-to-br ${colorClasses[color]} p-4 cursor-pointer hover:scale-[1.02] transition-transform`}
+      className={`bg-linear-to-br ${colorClasses[color]} p-4 cursor-pointer hover:scale-[1.02] transition-transform`}
       onClick={onClick}
     >
       <div className="flex items-start justify-between">

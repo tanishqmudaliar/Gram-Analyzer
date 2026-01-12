@@ -87,16 +87,16 @@ class AnalyticsService:
         snapshot_date = datetime.utcnow()
         
         # Delete today's existing snapshots to avoid duplicates
-        today_start = snapshot_date. replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = snapshot_date.replace(hour=0, minute=0, second=0, microsecond=0)
         
         await database.execute(
-            followers_snapshot. delete().where(
+            followers_snapshot.delete().where(
                 (followers_snapshot.c.user_id == user_id) &
                 (followers_snapshot.c.snapshot_date >= today_start)
             )
         )
         await database.execute(
-            following_snapshot. delete().where(
+            following_snapshot.delete().where(
                 (following_snapshot.c.user_id == user_id) &
                 (following_snapshot.c.snapshot_date >= today_start)
             )
@@ -132,13 +132,13 @@ class AnalyticsService:
                 )
             )
 
-    async def get_previous_followers(self, user_id:  int) -> Optional[list[InstagramUser]]:
+    async def get_previous_followers(self, user_id: int) -> Optional[list[InstagramUser]]: 
         """Get the most recent previous follower snapshot."""
         # Get distinct snapshot dates, ordered by most recent
         query = """
             SELECT DISTINCT DATE(snapshot_date) as snap_date, MAX(snapshot_date) as latest_time
             FROM followers_snapshot
-            WHERE user_id = : user_id
+            WHERE user_id = :user_id
             GROUP BY DATE(snapshot_date)
             ORDER BY snap_date DESC
             LIMIT 2
@@ -146,10 +146,8 @@ class AnalyticsService:
         rows = await database.fetch_all(query, {"user_id": user_id})
         
         if len(rows) < 2:
-            # No previous snapshot exists (first sync or only one day of data)
             return None
         
-        # Get followers from the second most recent DATE (not just timestamp)
         previous_date = rows[1]["snap_date"]
         
         query = """

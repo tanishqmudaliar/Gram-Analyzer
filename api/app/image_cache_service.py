@@ -59,7 +59,7 @@ async def download_profile_pic(ig_user_id:  str, profile_pic_url:  str) -> bool:
     ensure_profile_pics_dir()
     pic_path = get_cached_pic_path(ig_user_id)
 
-    if pic_path. exists():
+    if pic_path.exists():
         return True
 
     try: 
@@ -72,9 +72,9 @@ async def download_profile_pic(ig_user_id:  str, profile_pic_url:  str) -> bool:
             )
 
             if response.status_code == 200:
-                content_type = response.headers. get("content-type", "")
+                content_type = response.headers.get("content-type", "")
                 if "image" in content_type and len(response.content) > 500:
-                    pic_path.write_bytes(response. content)
+                    pic_path.write_bytes(response.content)
                     return True
             
             return False

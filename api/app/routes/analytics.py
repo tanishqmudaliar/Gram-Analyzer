@@ -304,12 +304,6 @@ async def perform_sync(
         log(f"[SYNC] Session loaded for user_id={user_id}, ig_user_id={ig_user_id}")
         await human_delay(1, 3)
 
-        if not ig_service.load_session(session_data):
-            sync_status[status_key].is_syncing = False
-            sync_status[status_key]. current_task = "Session expired.  Please login again."
-            log("[SYNC] Failed to load session")
-            return
-
         # ADD THIS: 
         sync_status[status_key].current_task = "Validating session..."
         sync_status[status_key].progress = 8
@@ -332,11 +326,7 @@ async def perform_sync(
         log("[SYNC] Fetching followers...")
 
         try:
-            def update_follower_progress(current, total):
-                sync_status[status_key]. current_task = f"Fetching followers...  {current}/{total}"
-                sync_status[status_key]. progress = 20 + int((current / total) * 25) if total > 0 else 20
-            
-            followers = await ig_service.get_followers(ig_user_id, progress_callback=update_follower_progress)
+            followers = await ig_service.get_followers(ig_user_id)
             log(f"[SYNC] Got {len(followers)} followers")
             sync_status[status_key].current_task = f"Found {len(followers)} followers"
             sync_status[status_key].progress = 45
@@ -348,7 +338,9 @@ async def perform_sync(
         except Exception as e:
             log(f"[SYNC ERROR] Failed to fetch followers: {e}")
             log(f"[SYNC ERROR] Traceback: {traceback.format_exc()}")
-            # Continue with empty followers list
+            sync_status[status_key].is_syncing = False
+            sync_status[status_key].current_task = f"Error fetching followers: {str(e)}"
+            return
 
         await human_delay(3, 8)
 
@@ -358,15 +350,11 @@ async def perform_sync(
         log("[SYNC] Fetching following...")
 
         try:
-            def update_following_progress(current, total):
-                sync_status[status_key].current_task = f"Fetching following... {current}/{total}"
-                sync_status[status_key].progress = 50 + int((current / total) * 25) if total > 0 else 50
-            
-            following = await ig_service.get_following(ig_user_id, progress_callback=update_following_progress)
+            following = await ig_service.get_following(ig_user_id)
             log(f"[SYNC] Got {len(following)} following")
-            sync_status[status_key]. current_task = f"Found {len(following)} following"
+            sync_status[status_key].current_task = f"Found {len(following)} following"
             sync_status[status_key].progress = 75
-        except InstagramRateLimitError as e: 
+        except InstagramRateLimitError as e:
             log(f"[SYNC ERROR] Instagram rate limit: {e}")
             sync_status[status_key].is_syncing = False
             sync_status[status_key].current_task = str(e)
@@ -374,7 +362,9 @@ async def perform_sync(
         except Exception as e:
             log(f"[SYNC ERROR] Failed to fetch following: {e}")
             log(f"[SYNC ERROR] Traceback: {traceback.format_exc()}")
-            # Continue with empty following list
+            sync_status[status_key].is_syncing = False
+            sync_status[status_key].current_task = f"Error fetching following: {str(e)}"
+            return
 
         # Compute analytics (even if lists are empty or partial)
         sync_status[status_key].current_task = "Computing analytics..."

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
@@ -40,7 +41,7 @@ export function UserCard({ user, action }: UserCardProps) {
       >
         {/* Avatar with gradient border */}
         <div className="relative">
-          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-[2px]">
+          <div className="w-11 h-11 rounded-full bg-linear-to-br from-purple-500 via-pink-500 to-orange-400 p-0.5">
             <div className="w-full h-full rounded-full bg-card flex items-center justify-center overflow-hidden">
               {!imgError ? (
                 <img
@@ -50,7 +51,7 @@ export function UserCard({ user, action }: UserCardProps) {
                   onError={() => setImgError(true)}
                 />
               ) : (
-                <span className="text-sm font-semibold bg-gradient-to-br from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                <span className="text-sm font-semibold bg-linear-to-br from-purple-500 to-pink-500 bg-clip-text text-transparent">
                   {getInitials()}
                 </span>
               )}
@@ -69,17 +70,19 @@ export function UserCard({ user, action }: UserCardProps) {
               {user.username}
             </p>
             {user.is_private && (
-              <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
             )}
           </div>
           {user.full_name && (
-            <p className="text-sm text-muted-foreground truncate">{user.full_name}</p>
+            <p className="text-sm text-muted-foreground truncate">
+              {user.full_name}
+            </p>
           )}
         </div>
 
         <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
-      {action && <div className="flex-shrink-0 ml-2">{action}</div>}
+      {action && <div className="shrink-0 ml-2">{action}</div>}
     </div>
   );
 }
@@ -109,11 +112,7 @@ export function UserList({
   return (
     <div className="space-y-1">
       {users.map((user) => (
-        <UserCard
-          key={user.ig_id}
-          user={user}
-          action={renderAction?.(user)}
-        />
+        <UserCard key={user.ig_id} user={user} action={renderAction?.(user)} />
       ))}
     </div>
   );

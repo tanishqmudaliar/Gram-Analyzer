@@ -4,7 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { authApi, AuthResponse, api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
@@ -72,14 +78,25 @@ export default function LoginPage() {
       let response: AuthResponse;
 
       if (step === "2fa") {
-        response = await authApi.verify2FA(sessionId, verificationCode, username, password);
+        response = await authApi.verify2FA(
+          sessionId,
+          verificationCode,
+          username,
+          password
+        );
       } else {
-        response = await authApi.verifyChallenge(sessionId, verificationCode, challengeType);
+        response = await authApi.verifyChallenge(
+          sessionId,
+          verificationCode,
+          challengeType
+        );
       }
 
       handleAuthResponse(response);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Verification failed. Please try again.");
+      setError(
+        err.response?.data?.detail || "Verification failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -116,7 +133,7 @@ export default function LoginPage() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 dark:bg-purple-500/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-500/20 dark:bg-pink-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-linear-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-3xl" />
       </div>
 
       {/* Theme toggle */}
@@ -126,18 +143,19 @@ export default function LoginPage() {
 
       <Card className="w-full max-w-md relative z-10 border-border bg-card/80 backdrop-blur-xl">
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-purple-500/25">
+          <div className="mx-auto w-16 h-16 bg-linear-to-br from-purple-500 via-pink-500 to-orange-400 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-purple-500/25">
             <Instagram className="w-8 h-8 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-purple-500 via-pink-500 to-orange-400 bg-clip-text text-transparent">
               GramAnalyzer
             </span>
           </CardTitle>
           <CardDescription className="text-muted-foreground">
             {step === "credentials" && "Sign in with your Instagram account"}
             {step === "2fa" && "Enter your two-factor authentication code"}
-            {step === "challenge" && `Enter the code sent to your ${challengeType}`}
+            {step === "challenge" &&
+              `Enter the code sent to your ${challengeType}`}
           </CardDescription>
         </CardHeader>
 
@@ -145,7 +163,9 @@ export default function LoginPage() {
           {step === "credentials" && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Username</label>
+                <label className="text-sm font-medium text-foreground">
+                  Username
+                </label>
                 <Input
                   type="text"
                   placeholder="Enter your Instagram username"
@@ -158,7 +178,9 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Password</label>
+                <label className="text-sm font-medium text-foreground">
+                  Password
+                </label>
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
@@ -174,7 +196,11 @@ export default function LoginPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -187,7 +213,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-lg shadow-purple-500/25"
+                className="w-full bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0 shadow-lg shadow-purple-500/25"
                 disabled={loading}
               >
                 {loading ? (
@@ -221,12 +247,18 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Verification Code</label>
+                <label className="text-sm font-medium text-foreground">
+                  Verification Code
+                </label>
                 <Input
                   type="text"
                   placeholder="Enter 6-digit code"
                   value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onChange={(e) =>
+                    setVerificationCode(
+                      e.target.value.replace(/\D/g, "").slice(0, 6)
+                    )
+                  }
                   required
                   autoComplete="one-time-code"
                   className="text-center text-2xl tracking-widest bg-background border-border"
@@ -242,7 +274,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
+                className="w-full bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
                 disabled={loading || verificationCode.length < 6}
               >
                 {loading ? (

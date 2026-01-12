@@ -356,61 +356,32 @@ class InstagramService:
         amount: int = 0,
         progress_callback:  Callable[[int, int], None] = None
     ) -> list[InstagramUser]:
-        """Get followers with pagination and rate limiting."""
-        if not self.client: 
+        """Get followers with rate limiting."""
+        if not self.client:
             raise ValueError("Not logged in")
 
         try:
-            batch_size = 100
-            max_amount = min(amount, RATE_LIMITS["max_followers_per_sync"]) if amount > 0 else 1000
+            # Determine how many to fetch (0 means all)
+            max_amount = min(amount, RATE_LIMITS["max_followers_per_sync"]) if amount > 0 else 0
             
-            log(f"[IG] Fetching up to {max_amount} followers for user {user_id}")
+            log(f"[IG] Fetching followers for user {user_id} (max: {max_amount if max_amount > 0 else 'all'})")
             
-            all_followers = {}
-            end_cursor = None
+            # instagrapi handles pagination internally - just call once
+            # amount=0 means fetch all followers
+            followers = self.client.user_followers(user_id, amount=max_amount)
             
-            while len(all_followers) < max_amount: 
-                try:
-                    # Fetch batch
-                    batch = self.client. user_followers_v1(
-                        user_id,
-                        amount=min(batch_size, max_amount - len(all_followers))
-                    )
-                    
-                    if not batch:
-                        break
-                    
-                    for user in batch:
-                        all_followers[str(user.pk)] = user
-                    
-                    log(f"[IG] Fetched {len(all_followers)}/{max_amount} followers")
-                    
-                    if progress_callback: 
-                        progress_callback(len(all_followers), max_amount)
-                    
-                    # Stop if we got less than requested (no more data)
-                    if len(batch) < batch_size:
-                        break
-                    
-                    # Human-like delay between batches
-                    if len(all_followers) < max_amount: 
-                        delay = random.uniform(
-                            RATE_LIMITS["delay_between_pages"][0],
-                            RATE_LIMITS["delay_between_pages"][1]
-                        )
-                        log(f"[IG] Waiting {delay:.1f}s before next batch...")
-                        await asyncio.sleep(delay)
-                        
-                except PleaseWaitFewMinutes:
-                    log("[IG WARNING] Rate limited, waiting 60s...")
-                    await asyncio.sleep(60)
-                    continue
-                    
-            log(f"[IG] Got {len(all_followers)} total followers")
+            log(f"[IG] Got {len(followers)} followers from API")
             
-            return [self._user_short_to_instagram_user(u) for u in all_followers.values()]
+            if progress_callback: 
+                progress_callback(len(followers), len(followers))
             
-        except ClientBadRequestError as e:
+            result = []
+            for pk, user in followers.items():
+                result.append(self._user_short_to_instagram_user(user))
+            
+            return result
+            
+        except ClientBadRequestError as e: 
             error_str = str(e).lower()
             log(f"[IG ERROR] Bad request getting followers: {e}")
             if "400" in str(e) or "bad request" in error_str:
@@ -419,75 +390,59 @@ class InstagramService:
                     "Try again in 1-24 hours."
                 )
             raise
-        except Exception as e: 
+        except PleaseWaitFewMinutes as e: 
+            log(f"[IG ERROR] Rate limited: {e}")
+            raise InstagramRateLimitError(
+                "Instagram rate limit hit. Please wait a few minutes and try again."
+            )
+        except Exception as e:
             log(f"[IG ERROR] Error getting followers: {e}")
             raise
+
 
     async def get_following(
         self,
         user_id: str,
         amount: int = 0,
-        progress_callback:  Callable[[int, int], None] = None
-    ) -> list[InstagramUser]: 
-        """Get following with pagination and rate limiting."""
+        progress_callback: Callable[[int, int], None] = None
+    ) -> list[InstagramUser]:
+        """Get following with rate limiting."""
         if not self.client:
             raise ValueError("Not logged in")
 
         try:
-            batch_size = 100
-            max_amount = min(amount, RATE_LIMITS["max_followers_per_sync"]) if amount > 0 else 1000
+            max_amount = min(amount, RATE_LIMITS["max_followers_per_sync"]) if amount > 0 else 0
             
-            log(f"[IG] Fetching up to {max_amount} following for user {user_id}")
+            log(f"[IG] Fetching following for user {user_id} (max: {max_amount if max_amount > 0 else 'all'})")
             
-            all_following = {}
+            # instagrapi handles pagination internally
+            following = self.client.user_following(user_id, amount=max_amount)
             
-            while len(all_following) < max_amount:
-                try:
-                    batch = self.client. user_following_v1(
-                        user_id,
-                        amount=min(batch_size, max_amount - len(all_following))
-                    )
-                    
-                    if not batch:
-                        break
-                    
-                    for user in batch:
-                        all_following[str(user.pk)] = user
-                    
-                    log(f"[IG] Fetched {len(all_following)}/{max_amount} following")
-                    
-                    if progress_callback: 
-                        progress_callback(len(all_following), max_amount)
-                    
-                    if len(batch) < batch_size:
-                        break
-                    
-                    if len(all_following) < max_amount:
-                        delay = random.uniform(
-                            RATE_LIMITS["delay_between_pages"][0],
-                            RATE_LIMITS["delay_between_pages"][1]
-                        )
-                        log(f"[IG] Waiting {delay:.1f}s before next batch...")
-                        await asyncio.sleep(delay)
-                        
-                except PleaseWaitFewMinutes: 
-                    log("[IG WARNING] Rate limited, waiting 60s...")
-                    await asyncio.sleep(60)
-                    continue
-                    
-            log(f"[IG] Got {len(all_following)} total following")
+            log(f"[IG] Got {len(following)} following from API")
             
-            return [self._user_short_to_instagram_user(u) for u in all_following.values()]
+            if progress_callback:
+                progress_callback(len(following), len(following))
+            
+            result = []
+            for pk, user in following.items():
+                result.append(self._user_short_to_instagram_user(user))
+            
+            return result
             
         except ClientBadRequestError as e:
             error_str = str(e).lower()
             log(f"[IG ERROR] Bad request getting following: {e}")
             if "400" in str(e) or "bad request" in error_str: 
                 raise InstagramRateLimitError(
-                    "Instagram temporarily restricted access to following list. "
+                    "Instagram temporarily restricted access to following list."
                     "Try again in 1-24 hours."
                 )
             raise
+        except PleaseWaitFewMinutes as e:
+            log(f"[IG ERROR] Rate limited:  {e}")
+            raise InstagramRateLimitError(
+                "Instagram rate limit hit. Please wait a few minutes and try again."
+            )
         except Exception as e:
             log(f"[IG ERROR] Error getting following: {e}")
             raise

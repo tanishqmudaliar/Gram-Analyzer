@@ -14,7 +14,7 @@ export default function Home() {
   useEffect(() => {
     const checkAndRedirect = async () => {
       // Wait a tick for zustand to rehydrate from localStorage
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       if (isAuthenticated && accessToken) {
         try {
@@ -35,9 +35,9 @@ export default function Home() {
   }, [isAuthenticated, accessToken, router, logout]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-zinc-950 via-zinc-900 to-zinc-950">
       <div className="text-center">
-        <div className="mx-auto w-20 h-20 bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 pulse-glow">
+        <div className="mx-auto w-20 h-20 bg-linear-to-br from-pink-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 pulse-glow">
           <Instagram className="w-10 h-10 text-white" />
         </div>
         <h1 className="text-3xl font-bold mb-2">
